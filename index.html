@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DVD Library</title>
+<meta name="theme-color" content="#10241d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=1.0.0">
+</head>
+<body>
+
+<!-- Shown when config.php is missing or incomplete -->
+<section id="screen-setup" class="gate" hidden>
+  <div class="gate-box">
+    <h1>Almost ready</h1>
+    <p>The library needs a little setting up on the server first:</p>
+    <ul id="setup-problems"></ul>
+    <p>Fix these, then reload this page.</p>
+  </div>
+</section>
+
+<!-- Sign in -->
+<section id="screen-login" class="gate" hidden>
+  <div class="gate-box">
+    <h1>DVD Library</h1>
+    <p>Enter the library password. This tablet will stay signed in.</p>
+    <form id="login-form">
+      <input id="login-pw" type="password" autocomplete="current-password" placeholder="Password" required>
+      <button class="btn btn-brass" type="submit">Unlock</button>
+    </form>
+    <div id="login-error" class="error" role="alert"></div>
+  </div>
+</section>
+
+<!-- The library -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="brand">DVD Library</div>
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search titles, actors, directors, shelves" autocomplete="off" aria-label="Search the library">
+      </label>
+      <button id="btn-add" class="btn btn-brass" type="button"><span aria-hidden="true">+</span><span class="label">Add discs</span></button>
+      <div class="menu">
+        <button id="btn-menu" class="btn btn-icon" type="button" aria-label="More options" aria-expanded="false">⋯</button>
+        <div id="menu-list" class="menu-list" hidden>
+          <a href="api.php?action=export" id="menu-export">Download list (CSV)</a>
+          <button type="button" id="menu-reload">Reload library</button>
+          <button type="button" id="menu-about">About</button>
+          <button type="button" id="menu-signout">Sign out this tablet</button>
+        </div>
+      </div>
+    </div>
+    <div class="filters">
+      <span id="count" class="count"></span>
+      <select id="f-shelf" aria-label="Shelf"></select>
+      <select id="f-type" aria-label="Kind">
+        <option value="">Films and TV</option>
+        <option value="movie">Films</option>
+        <option value="tv">TV</option>
+        <option value="other">Other</option>
+      </select>
+      <select id="f-format" aria-label="Format"></select>
+      <select id="f-sort" aria-label="Sort by">
+        <option value="title">Title A–Z</option>
+        <option value="added">Recently added</option>
+        <option value="year">Newest first</option>
+        <option value="shelf">By shelf</option>
+      </select>
+      <label class="check"><input type="checkbox" id="f-loan"> On loan</label>
+    </div>
+  </header>
+  <main id="library" class="library" aria-live="polite"></main>
+</div>
+
+<!-- Catalogue card for one disc -->
+<div id="detail" class="sheet-back" hidden>
+  <article id="card" class="card" role="dialog" aria-modal="true" aria-labelledby="card-title"></article>
+</div>
+
+<!-- Adding discs -->
+<div id="adder" class="adder" hidden role="dialog" aria-modal="true" aria-label="Add discs">
+  <div class="adder-top">
+    <h2 id="adder-title">Add discs</h2>
+    <div class="modes" role="group" aria-label="How to add">
+      <button type="button" data-mode="barcode" aria-pressed="true">Scan barcode</button>
+      <button type="button" data-mode="cover" aria-pressed="false">Photo of cover</button>
+      <button type="button" data-mode="type" aria-pressed="false">Type title</button>
+    </div>
+    <div class="adder-shelf">
+      <label class="field" style="flex-direction:row;align-items:center;gap:8px">
+        <span>Shelf</span>
+        <input id="a-shelf" list="shelf-list" placeholder="e.g. Lounge left" autocomplete="off">
+      </label>
+      <label class="check"><input type="checkbox" id="a-keep"> Keep adding</label>
+      <button id="adder-close" class="btn" type="button">Done</button>
+    </div>
+  </div>
+  <div id="adder-body" class="adder-body">
+    <div class="viewfinder" id="viewfinder">
+      <video id="video" playsinline muted autoplay></video>
+      <img id="still" class="still" alt="" hidden>
+      <div id="reticle" class="reticle is-barcode"></div>
+      <div class="vf-tools">
+        <button id="btn-torch" class="btn btn-icon" type="button" aria-label="Torch" aria-pressed="false" hidden>💡</button>
+      </div>
+      <div id="vf-shutter" class="vf-shutter" hidden>
+        <button id="btn-snap" class="btn btn-brass" type="button">Take photo</button>
+        <label class="btn" for="file-photo">Choose photo</label>
+        <input id="file-photo" type="file" accept="image/*" hidden>
+      </div>
+      <div id="vf-msg" class="vf-msg" hidden></div>
+    </div>
+    <section id="panel" class="panel" aria-live="polite"></section>
+  </div>
+</div>
+
+<datalist id="shelf-list"></datalist>
+<datalist id="format-list">
+  <option value="DVD"></option>
+  <option value="Blu-ray"></option>
+  <option value="4K UHD"></option>
+  <option value="VHS"></option>
+</datalist>
+
+<div id="modal" class="modal-back" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="app.js?v=1.0.0"></script>
+</body>
+</html>
